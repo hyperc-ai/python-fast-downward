@@ -20,18 +20,26 @@ def get_readme():
 class BuildFastDownward(bdist_wheel):
 
     def run(self):
-        # bdist_wheel.run(self)
-        # return
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         package_dir = os.path.join(cur_dir, PACKAGE_NAME)
         #cleanup
         try:
             shutil.rmtree(os.path.join(cur_dir, "build"))
-            shutil.rmtree(os.path.join(cur_dir, "dist"))
-            shutil.rmtree(package_dir)
-            shutil.rmtree(os.path.join(cur_dir, "downward_ch.egg-info"))
         except:
             pass
+        try:
+            shutil.rmtree(os.path.join(cur_dir, "dist"))
+        except:
+            pass            
+        try:            
+            shutil.rmtree(package_dir)
+        except:
+            pass            
+        try:            
+            shutil.rmtree(os.path.join(cur_dir, "downward_ch.egg-info"))
+        except:
+            pass            
+
         
         # hg clone -u 7a0a766081e6 http://hg.fast-downward.org  downward_ch
         build_process = subprocess.Popen(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cwd=cur_dir,
@@ -63,9 +71,9 @@ class BuildFastDownward(bdist_wheel):
         shutil.copyfile(os.path.join(cur_dir, "downward_ch.py"), os.path.join(package_dir, "downward_ch.py"))
         shutil.copyfile(os.path.join(cur_dir, "__init__.py"), os.path.join(package_dir, "__init__.py"))
         shutil.rmtree(os.path.join(package_dir, ".hg"))
-
-        # bdist_wheel.run(self)
-        # return
+        shutil.rmtree(os.path.join(package_dir, "experiments"))
+        shutil.rmtree(os.path.join(package_dir, "src"))
+        shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
 
         # Compilation
         build_command = str(os.path.join(package_dir, 'build.py'))
