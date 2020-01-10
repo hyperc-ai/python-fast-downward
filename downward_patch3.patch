@@ -441,3 +441,14 @@ diff -r 7a0a766081e6 src/translate/translate.py
  
  
  def translate_strips_conditions(conditions, dictionary, ranges,
+--- a/driver/aliases.py	2020-01-10 06:08:49.612069676 -0800
++++ b/driver/aliases.py	2020-01-10 06:22:24.281242788 -0800
+@@ -150,6 +150,8 @@
+ PORTFOLIOS = {}
+ for portfolio in os.listdir(PORTFOLIO_DIR):
+     name, ext = os.path.splitext(portfolio)
++    if not ext == ".py":
++        continue
+     assert ext == ".py", portfolio
+     PORTFOLIOS[name.replace("_", "-")] = os.path.join(PORTFOLIO_DIR, portfolio)
+ 

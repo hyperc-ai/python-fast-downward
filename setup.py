@@ -88,9 +88,10 @@ class BuildFastDownward(bdist_wheel):
         for filePath in fileList:
             try:
                 os.remove(filePath)
+                shutil.rmtree(os.path.join(package_dir, "/driver/portfolios/__pycache__"))
             except:
                 print("Error while deleting file : ", filePath)
-        
+
 
         bdist_wheel.run(self)
 
