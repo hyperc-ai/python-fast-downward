@@ -1,0 +1,443 @@
+diff -r 7a0a766081e6 src/search/pdbs/pattern_collection_generator_genetic.cc
+--- a/src/search/pdbs/pattern_collection_generator_genetic.cc	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/pdbs/pattern_collection_generator_genetic.cc	Mon Dec 23 05:09:14 2019 -0800
+@@ -141,8 +141,8 @@
+     for (size_t i = 0; i < pattern.size(); ++i) {
+         VariableProxy var = variables[pattern[i]];
+         int domain_size = var.get_domain_size();
+-        if (!utils::is_product_within_limit(mem, domain_size, pdb_max_size))
+-            return true;
++        // if (!utils::is_product_within_limit(mem, domain_size, pdb_max_size))
++            // return true;
+         mem *= domain_size;
+     }
+     return false;
+@@ -161,9 +161,11 @@
+ 
+ void PatternCollectionGeneratorGenetic::evaluate(vector<double> &fitness_values) {
+     TaskProxy task_proxy(*task);
++    int i = 0;
+     for (const auto &collection : pattern_collections) {
+-        //cout << "evaluate pattern collection " << (i + 1) << " of "
+-        //     << pattern_collections.size() << endl;
++        cout << "evaluate pattern collection " << (i + 1) << " of "
++            << pattern_collections.size() << endl;
++        i++;
+         double fitness = 0;
+         bool pattern_valid = true;
+         vector<bool> variables_used(task_proxy.get_variables().size(), false);
+@@ -189,6 +191,7 @@
+             remove_irrelevant_variables(pattern);
+             pattern_collection->push_back(pattern);
+         }
++        cout << "  ... do zw" << endl;
+         if (!pattern_valid) {
+             /* Set fitness to a very small value to cover cases in which all
+                patterns are invalid. */
+@@ -205,6 +208,7 @@
+                 best_patterns = pattern_collection;
+             }
+         }
++        cout << "  ... zw done" << endl;
+         fitness_values.push_back(fitness);
+     }
+ }
+diff -r 7a0a766081e6 src/search/pdbs/zero_one_pdbs.cc
+--- a/src/search/pdbs/zero_one_pdbs.cc	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/pdbs/zero_one_pdbs.cc	Mon Dec 23 05:09:14 2019 -0800
+@@ -58,6 +58,7 @@
+     double approx_mean_finite_h = 0;
+     for (const shared_ptr<PatternDatabase> &pdb : pattern_databases) {
+         approx_mean_finite_h += pdb->compute_mean_finite_h();
++        cout << "h: " << approx_mean_finite_h << endl;
+     }
+     return approx_mean_finite_h;
+ }
+diff -r 7a0a766081e6 src/search/plan_manager.cc
+--- a/src/search/plan_manager.cc	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/plan_manager.cc	Mon Dec 23 05:09:14 2019 -0800
+@@ -68,3 +68,15 @@
+     cout << "Plan cost: " << plan_cost << endl;
+     ++num_previously_generated_plans;
+ }
++
++void PlanManager::print_plan(
++    const Plan &plan, const TaskProxy &task_proxy) {
++    cout << "---" << endl;
++    OperatorsProxy operators = task_proxy.get_operators();
++    for (OperatorID op_id : plan) {
++        cout << operators[op_id].get_name() << " (" << operators[op_id].get_cost() << ")" << endl;
++    }
++    int plan_cost = calculate_plan_cost(plan, task_proxy);
++    cout << "Plan length: " << plan.size() << " step(s)." << endl;
++    cout << "Plan cost: " << plan_cost << endl;
++}
+diff -r 7a0a766081e6 src/search/plan_manager.h
+--- a/src/search/plan_manager.h	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/plan_manager.h	Mon Dec 23 05:09:14 2019 -0800
+@@ -27,6 +27,8 @@
+     void save_plan(
+         const Plan &plan, const TaskProxy &task_proxy,
+         bool generates_multiple_plan_files = false);
++    void print_plan(
++        const Plan &plan, const TaskProxy &task_proxy);
+ };
+ 
+ extern int calculate_plan_cost(const Plan &plan, const TaskProxy &task_proxy);
+diff -r 7a0a766081e6 src/search/search_engine.cc
+--- a/src/search/search_engine.cc	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/search_engine.cc	Mon Dec 23 05:09:14 2019 -0800
+@@ -108,6 +108,9 @@
+         set_plan(plan);
+         return true;
+     }
++    Plan plan;
++    search_space.trace_path(state, plan);
++    plan_manager.print_plan(plan, task_proxy); // grandrew
+     return false;
+ }
+ 
+diff -r 7a0a766081e6 src/search/search_engines/lazy_search.cc
+--- a/src/search/search_engines/lazy_search.cc	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/search_engines/lazy_search.cc	Mon Dec 23 05:09:14 2019 -0800
+@@ -29,6 +29,8 @@
+       current_operator_id(OperatorID::no_operator),
+       current_g(0),
+       current_real_g(0),
++      successor_count(0),
++      successor_cost(0),
+       current_eval_context(current_state, 0, true, &statistics) {
+     /*
+       We initialize current_eval_context in such a way that the initial node
+@@ -101,10 +103,16 @@
+ 
+     statistics.inc_generated(successor_operators.size());
+ 
++    successor_count = 0;
++    successor_cost = 0;
++
+     for (OperatorID op_id : successor_operators) {
++        successor_count ++;
+         OperatorProxy op = task_proxy.get_operators()[op_id];
+         int new_g = current_g + get_adjusted_cost(op);
+-        int new_real_g = current_real_g + op.get_cost();
++        successor_cost = op.get_cost();
++        // int new_real_g = current_real_g + op.get_cost();
++        int new_real_g = current_real_g + successor_cost;
+         bool is_preferred = preferred_operators.contains(op_id);
+         if (new_real_g < bound) {
+             EvaluationContext new_eval_context(
+@@ -154,7 +162,6 @@
+     // - current_g is the g value of the current state according to the cost_type
+     // - current_real_g is the g value of the current state (using real costs)
+ 
+-
+     SearchNode node = search_space.get_node(current_state);
+     bool reopen = reopen_closed_nodes && !node.is_new() &&
+         !node.is_dead_end() && (current_g < node.get_g());
+@@ -188,19 +195,38 @@
+             node.close();
+             if (check_goal_and_set_plan(current_state))
+                 return SOLVED;
++            // if (successor_count == 1 || search_progress.check_progress(current_eval_context)) {
+             if (search_progress.check_progress(current_eval_context)) {
+                 statistics.print_checkpoint_line(current_g);
+                 reward_progress();
+             }
+             generate_successors();
++            // while (successor_count == 1 && successor_cost == 0) { // fast forward to next state
++            //     fetch_next_state();
++            //     SearchNode node2 = search_space.get_node(current_state);
++            //     if (node2.is_new()) {
++            //         GlobalState parent_state2 = state_registry.lookup_state(current_predecessor_id);
++            //         SearchNode parent_node2 = search_space.get_node(parent_state2);
++            //         OperatorProxy current_operator2 = task_proxy.get_operators()[current_operator_id];
++            //         cout << " --- FF " << current_operator2.get_name() << " " << successor_count << "sco" << successor_cost << endl;
++            //         node2.open(parent_node2, current_operator2, get_adjusted_cost(current_operator2));
++            //         node2.close();
++            //         generate_successors();
++            //     }
++            // }
+             statistics.inc_expanded();
+         } else {
+             node.mark_as_dead_end();
+             statistics.inc_dead_ends();
++            OperatorProxy current_operator2 = task_proxy.get_operators()[current_operator_id];
++            cout << " --- DD " << current_operator2.get_name() << endl;
+         }
+         if (current_predecessor_id == StateID::no_state) {
+             print_initial_evaluator_values(current_eval_context);
+         }
++    } else {
++        OperatorProxy current_operator2 = task_proxy.get_operators()[current_operator_id];
++        cout << " --- ON " << current_operator2.get_name() << endl;
+     }
+     return fetch_next_state();
+ }
+diff -r 7a0a766081e6 src/search/search_engines/lazy_search.h
+--- a/src/search/search_engines/lazy_search.h	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/search/search_engines/lazy_search.h	Mon Dec 23 05:09:14 2019 -0800
+@@ -38,6 +38,8 @@
+     OperatorID current_operator_id;
+     int current_g;
+     int current_real_g;
++    int successor_count;
++    int successor_cost;
+     EvaluationContext current_eval_context;
+ 
+     virtual void initialize() override;
+diff -r 7a0a766081e6 src/translate/constraints.py
+--- a/src/translate/constraints.py	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/translate/constraints.py	Mon Dec 23 05:09:14 2019 -0800
+@@ -6,9 +6,10 @@
+ 
+ class NegativeClause(object):
+     # disjunction of inequalities
++    __slots__ = ['parts']
+     def __init__(self, parts):
+         self.parts = parts
+-        assert len(parts)
++        # assert len(parts)
+ 
+     def __str__(self):
+         disj = " or ".join(["(%s != %s)" % (v1, v2)
+@@ -155,6 +156,7 @@
+         """Check whether the combinatorial assignments include at least
+            one consistent assignment under which the negative clauses
+            are satisfiable"""
++        # return True
+         for assignments in itertools.product(*self.combinatorial_assignments):
+             combined = self._combine_assignments(assignments)
+             if not combined.is_consistent():
+diff -r 7a0a766081e6 src/translate/invariants.py
+--- a/src/translate/invariants.py	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/translate/invariants.py	Mon Dec 23 05:09:14 2019 -0800
+@@ -6,6 +6,7 @@
+ import constraints
+ import pddl
+ import tools
++import copy
+ 
+ # Notes:
+ # All parts of an invariant always use all non-counted variables
+@@ -173,8 +174,9 @@
+     def possible_matches(self, own_literal, other_literal):
+         assert self.predicate == own_literal.predicate
+         result = []
++        new_order_template = [None] * len(self.order)
+         for mapping in self.possible_mappings(own_literal, other_literal):
+-            new_order = [None] * len(self.order)
++            new_order = copy.copy(new_order_template)
+             omitted = -1
+             for (key, value) in mapping:
+                 if value == -1:
+@@ -195,11 +197,20 @@
+     # A "part" is a symbolic fact only variable symbols in {V1, ..., Vk, X};
+     # the symbol X may occur at most once.
+ 
++    __slots__ = ['parts', '_predicates', 'predicate_to_part']
++
+     def __init__(self, parts):
+         self.parts = frozenset(parts)
+-        self.predicates = set([part.predicate for part in parts])
++        # self.predicates = set([part.predicate for part in parts])
++        self._predicates = None
+         self.predicate_to_part = dict([(part.predicate, part) for part in parts])
+-        assert len(self.parts) == len(self.predicates)
++        # assert len(self.parts) == len(self.predicates)
++
++    @property
++    def predicates(self):
++        if not self._predicates:
++            self._predicates = set([part.predicate for part in self.parts])
++        return self._predicates
+ 
+     def __eq__(self, other):
+         return self.parts == other.parts
+@@ -302,11 +313,18 @@
+             system = constraints.ConstraintSystem()
+             system.add_assignment(assignment)
+             mapping = assignment.get_mapping()
+-            if len(params) > 1:
+-                for (n1, n2) in itertools.combinations(params, 2):
++            if params:
++                if len(params) == 2:
++                    n1 = params[0]
++                    n2 = params[1]
+                     if mapping.get(n1, n1) != mapping.get(n2, n2):
+                         negative_clause = constraints.NegativeClause([(n1, n2)])
+                         system.add_negative_clause(negative_clause)
++                else:
++                    for (n1, n2) in itertools.combinations(params, 2):
++                        if mapping.get(n1, n1) != mapping.get(n2, n2):
++                            negative_clause = constraints.NegativeClause([(n1, n2)])
++                            system.add_negative_clause(negative_clause)
+             minimal_renamings.append(system)
+         return minimal_renamings
+ 
+@@ -391,6 +409,7 @@
+         return still_unbalanced
+ 
+     def lhs_satisfiable(self, renaming, lhs_by_pred):
++        # return True
+         system = renaming.copy()
+         ensure_conjunction_sat(system, *itertools.chain(lhs_by_pred.values()))
+         return system.is_solvable()
+diff -r 7a0a766081e6 src/translate/sas_tasks.py
+--- a/src/translate/sas_tasks.py	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/translate/sas_tasks.py	Mon Dec 23 05:09:14 2019 -0800
+@@ -253,6 +253,7 @@
+ 
+ 
+ class SASOperator:
++    __slots__ = ['name', 'prevail', 'pre_post', 'cost']
+     def __init__(self, name, prevail, pre_post, cost):
+         self.name = name
+         self.prevail = sorted(prevail)
+@@ -263,15 +264,16 @@
+         # Return a sorted and uniquified version of pre_post. We would
+         # like to just use sorted(set(pre_post)), but this fails because
+         # the effect conditions are a list and hence not hashable.
+-        def tuplify(entry):
+-            var, pre, post, cond = entry
+-            return var, pre, post, tuple(cond)
+-        def listify(entry):
+-            var, pre, post, cond = entry
+-            return var, pre, post, list(cond)
+-        pre_post = map(tuplify, pre_post)
++        # def tuplify(entry):
++        #     var, pre, post, cond = entry
++        #     return var, pre, post, tuple(cond)
++        # def listify(entry):
++        #     var, pre, post, cond = entry
++        #     return var, pre, post, list(cond)
++        # pre_post = map(tuplify, pre_post)
++        pre_post = map(lambda e: (e[0],e[1],e[2],tuple(e[3])), pre_post)
+         pre_post = sorted(set(pre_post))
+-        pre_post = list(map(listify, pre_post))
++        pre_post = list(map(lambda e: (e[0],e[1],e[2],list(e[3])), pre_post))
+         return pre_post
+ 
+     def validate(self, variables):
+@@ -358,7 +360,7 @@
+                 cond_str = ""
+             print("  v%d: %d -> %d%s" % (var, pre, post, cond_str))
+ 
+-    def output(self, stream):
++    def output_slow(self, stream):
+         print("begin_operator", file=stream)
+         print(self.name[1:-1], file=stream)
+         print(len(self.prevail), file=stream)
+@@ -373,6 +375,33 @@
+         print(self.cost, file=stream)
+         print("end_operator", file=stream)
+ 
++    def output(self, stream):
++        gen_prepost = []
++        for var, pre, post, cond in self.pre_post:
++            gen_prepost.append(str(len(cond)))
++            for cvar, cval in cond:
++                gen_prepost.append(str(cvar))
++                gen_prepost.append(str(cval))
++            gen_prepost.append(str(var))
++            gen_prepost.append(str(pre))
++            gen_prepost.append(str(post))
++        stream.write("""begin_operator
++%s
++%s
++%s
++%s
++%s
++%s
++end_operator
++""" % (
++    self.name[1:-1], 
++    len(self.prevail),
++    '\n'.join(["%s %s"%(var, val) for var, val in self.prevail]),
++    len(self.pre_post),
++    ' '.join(gen_prepost),
++    self.cost
++    ))
++
+     def get_encoding_size(self):
+         size = 1 + len(self.prevail)
+         for var, pre, post, cond in self.pre_post:
+diff -r 7a0a766081e6 src/translate/translate.py
+--- a/src/translate/translate.py	Thu Oct 17 11:25:59 2019 +0200
++++ b/src/translate/translate.py	Mon Dec 23 05:09:14 2019 -0800
+@@ -90,10 +90,6 @@
+                 return None
+             condition[var] = set([val])
+ 
+-    def number_of_values(var_vals_pair):
+-        var, vals = var_vals_pair
+-        return len(vals)
+-
+     for fact in conditions:
+         if fact.negated:
+             ## Note: here we use a different solution than in Sec. 10.6.4
+@@ -118,14 +114,14 @@
+                 poss_vals.remove(val)
+ 
+                 if condition.get(var) is None:
+-                    assert new_condition.get(var) is None
++                    # assert new_condition.get(var) is None
+                     new_condition[var] = poss_vals
+                 else:
+                     # constrain existing condition on var
+                     prev_possible_vals = condition.get(var)
+                     done = True
+                     prev_possible_vals.intersection_update(poss_vals)
+-                    if len(prev_possible_vals) == 0:
++                    if not prev_possible_vals:
+                         # Conflicting conditions on this variable:
+                         # Operator invalid.
+                         return None
+@@ -136,28 +132,28 @@
+                 # this atom. So we need to introduce a new condition:
+                 # We can select any from new_condition and currently prefer the
+                 # smallest one.
+-                candidates = sorted(new_condition.items(), key=number_of_values)
++                candidates = sorted(new_condition.items(), \
++                            key=lambda var_vals_pair: len(var_vals_pair[1]))
+                 var, vals = candidates[0]
+                 condition[var] = vals
+ 
+-        def multiply_out(condition):  # destroys the input
+-            sorted_conds = sorted(condition.items(), key=number_of_values)
+-            flat_conds = [{}]
+-            for var, vals in sorted_conds:
+-                if len(vals) == 1:
+-                    for cond in flat_conds:
+-                        cond[var] = vals.pop()  # destroys the input here
+-                else:
+-                    new_conds = []
+-                    for cond in flat_conds:
+-                        for val in vals:
+-                            new_cond = deepcopy(cond)
+-                            new_cond[var] = val
+-                            new_conds.append(new_cond)
+-                    flat_conds = new_conds
+-            return flat_conds
+-
+-    return multiply_out(condition)
++    # multiply_out - destroys the input
++    sorted_conds = sorted(condition.items(), 
++                    key=lambda var_vals_pair: len(var_vals_pair[1]))
++    flat_conds = [{}]
++    for var, vals in sorted_conds:
++        if len(vals) == 1:
++            for cond in flat_conds:
++                cond[var] = vals.pop()  # destroys the input here
++        else:
++            new_conds = []
++            for cond in flat_conds:
++                for val in vals:
++                    new_cond = deepcopy(cond)
++                    new_cond[var] = val
++                    new_conds.append(new_cond)
++            flat_conds = new_conds
++    return flat_conds
+ 
+ 
+ def translate_strips_conditions(conditions, dictionary, ranges,
