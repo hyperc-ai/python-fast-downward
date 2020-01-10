@@ -104,7 +104,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
-    entry_points={'console_scripts': ['downward-ch=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
+    entry_points={'console_scripts': ['fast-downward-ch=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
     version='0.0.1',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
