@@ -1,2 +1,2 @@
-global-exclude *
+recursive-include downward_ch *
 include downward_patch3.patch README.md setup.cfg setup.py MANIFEST.in
