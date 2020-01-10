@@ -1,0 +1,11 @@
+MANIFEST.in
+README.md
+downward_patch3.patch
+setup.cfg
+setup.py
+downward_ch/__init__.py
+downward_ch.egg-info/PKG-INFO
+downward_ch.egg-info/SOURCES.txt
+downward_ch.egg-info/dependency_links.txt
+downward_ch.egg-info/entry_points.txt
+downward_ch.egg-info/top_level.txt

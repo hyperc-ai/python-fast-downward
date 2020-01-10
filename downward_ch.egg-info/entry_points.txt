@@ -1,0 +1,3 @@
+[console_scripts]
+downward-ch = downward_ch.downward_ch:downward_ch_main
+
