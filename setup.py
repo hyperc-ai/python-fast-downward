@@ -35,7 +35,6 @@ class BuildFastDownward(bdist_wheel):
             shutil.rmtree(package_dir)
         except:
             pass            
-        
         # hg clone -u 7a0a766081e6 http://hg.fast-downward.org  downward_ch
         build_process = subprocess.Popen(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cwd=cur_dir,
                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -105,7 +104,7 @@ setup(
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.1',
+    version='0.0.2',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',
