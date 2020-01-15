@@ -95,6 +95,7 @@ class BuildFastDownward(bdist_wheel):
         shutil.rmtree(os.path.join(package_dir, "src"))
         shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
 
+        self.root_is_pure = False
         bdist_wheel.run(self)
 
 
