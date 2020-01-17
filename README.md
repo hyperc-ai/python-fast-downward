@@ -1,4 +1,4 @@
-The Fast-Downward Planning System (www.fast-downward.org) with Critical hop patches 
+The Fast-Downward Planning System (www.fast-downward.org) with Critical Hop patches 
 
 Building:
 
