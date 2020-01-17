@@ -1,12 +1,28 @@
 The Fast-Downward Planning System (www.fast-downward.org) with Critical Hop patches 
 
-Building:
+# Usage
+
+## Installing:
+
+```
+pip install downward-ch
+```
+
+## Running:
+
+```
+$ fast-downward <options> <domain.pddl> <problem.pddl>
+```
+
+# Developing
+
+## Building:
 
 ```
 python 3.7 setup.py bdist_wheel
 ```
 
-Publishing:
+## Publishing:
 
 1. Build the manylinux distribution
 
