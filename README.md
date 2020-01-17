@@ -8,6 +8,12 @@ python 3.7 setup.py bdist_wheel
 
 Publishing:
 
+1. Build the manylinux distribution
+
+alternatively, rename platform tag to `manylinux1_x86_64`
+
+2. Upload
+
 ```
-twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+twine upload dist/*
 ```
