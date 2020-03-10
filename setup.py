@@ -19,6 +19,13 @@ def get_readme():
 
 class BuildFastDownward(bdist_wheel):
 
+    def get_tag(self):
+        python, abi, plat = bdist_wheel.get_tag(self)
+        if 'linux' == plat.split('_')[0]:
+            plat = 'manylinux1_{0}'.format('_'.join(plat.split('_')[1:]))
+        python, abi = 'py3', 'none'
+        return python, abi, plat
+
     def run(self):
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         package_dir = os.path.join(cur_dir, PACKAGE_NAME)
@@ -101,11 +108,12 @@ class BuildFastDownward(bdist_wheel):
 
 setup(
     name=PACKAGE_NAME,
+    python_requires='>=3.6.0',
     packages=find_packages(),
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.3',
+    version='0.0.4',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',
@@ -113,7 +121,7 @@ setup(
     long_description=get_readme(),
     keywords='semantic planning pddl fast downward planner fast-downward domain-independent',
     classifiers=[
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python',
         'Programming Language :: C++',
         'Environment :: Console',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
