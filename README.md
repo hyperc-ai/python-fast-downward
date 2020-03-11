@@ -21,7 +21,8 @@ $ fast-downward <options> <domain.pddl> <problem.pddl>
 ## Building:
 
 ```
-python 3.7 setup.py bdist_wheel
+sudo apt install mercurial g++ cmake
+python3.7 setup.py bdist_wheel
 ```
 
 ## Publishing:
