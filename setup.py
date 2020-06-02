@@ -11,7 +11,7 @@ import shutil
 PACKAGE_NAME = 'downward_ch'
 DOWNWARD_REPO = 'http://hg.fast-downward.org '
 REV = '7a0a766081e6'
-PATCH = 'downward_patch3.patch'
+PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
 
 def get_readme():
     return open(os.path.join(os.path.dirname(__file__), 'README.md'), 'r').read()
@@ -56,18 +56,19 @@ class BuildFastDownward(bdist_wheel):
               line = build_process.stderr.readline()
 
 #       cd downward_ch ; patch -p1 < ../downward_patch3.patch
-        patch_dir =  str(os.path.join(cur_dir, PATCH))
-        build_process = subprocess.Popen(["patch -p1 < " + patch_dir], cwd=package_dir,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        line = build_process.stdout.readline()
-        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-        while line:
-              sys.stdout.write(line.decode(encoding))
-              line = build_process.stdout.readline()
-        line = build_process.stderr.readline()
-        while line:
-              sys.stderr.write(line.decode(encoding))
-              line = build_process.stderr.readline()
+        for PATCH in PATCHES:
+            patch_dir =  str(os.path.join(cur_dir, PATCH))
+            build_process = subprocess.Popen(["patch -p1 < " + patch_dir], cwd=package_dir,
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            line = build_process.stdout.readline()
+            encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
+            while line:
+                sys.stdout.write(line.decode(encoding))
+                line = build_process.stdout.readline()
+            line = build_process.stderr.readline()
+            while line:
+                sys.stderr.write(line.decode(encoding))
+                line = build_process.stderr.readline()
 
         shutil.copyfile(os.path.join(cur_dir, "downward_ch.py"), os.path.join(package_dir, "downward_ch.py"))
         shutil.copyfile(os.path.join(cur_dir, "__init__.py"), os.path.join(package_dir, "__init__.py"))
@@ -113,7 +114,7 @@ setup(
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.4',
+    version='0.0.5',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',

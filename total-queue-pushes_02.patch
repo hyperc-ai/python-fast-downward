@@ -1,0 +1,37 @@
+diff -r a01b8e5013af src/translate/build_model.py
+--- a/src/translate/build_model.py	Mon Mar 04 17:22:18 2019 +0100
++++ b/src/translate/build_model.py	Tue Jun 02 14:31:35 2020 +0300
+@@ -5,6 +5,7 @@
+ 
+ import sys
+ import itertools
++import options
+ 
+ import pddl
+ import timers
+@@ -311,6 +312,11 @@
+         relevant_atoms = 0
+         auxiliary_atoms = 0
+         while queue:
++            if options.total_queue_pushes > 0 and queue.num_pushes > options.total_queue_pushes:
++                print("%d > %d total queue pushes raise" % (queue.num_pushes, options.total_queue_pushes))
++                ## For a full list of exit codes, please see driver/returncodes.py.
++                OUT_OF_TOTAL_QUEUE_PUSHES = 150
++                sys.exit(OUT_OF_TOTAL_QUEUE_PUSHES)
+             next_atom = queue.pop()
+             pred = next_atom.predicate
+             if isinstance(pred, str) and "$" in pred:
+diff -r a01b8e5013af src/translate/options.py
+--- a/src/translate/options.py	Mon Mar 04 17:22:18 2019 +0100
++++ b/src/translate/options.py	Tue Jun 02 14:31:35 2020 +0300
+@@ -54,6 +54,10 @@
+     argparser.add_argument(
+         "--dump-task", action="store_true",
+         help="dump human-readable SAS+ representation of the task")
++    argparser.add_argument(
++        "--total-queue-pushes", dest="total_queue_pushes", default=0, type=int,
++        help="set total queue pushes limit!")
++    
+     return argparser.parse_args()
+ 
+ 
