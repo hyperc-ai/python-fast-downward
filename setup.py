@@ -11,6 +11,9 @@ import shutil
 PACKAGE_NAME = 'downward_ch'
 DOWNWARD_REPO = 'http://hg.fast-downward.org '
 REV = '7a0a766081e6'
+#FF_REV = '6271ba2'
+FF_REPO = 'https://github.com/criticalhop/FF-emscripten.git'
+FF_DIR = 'FF-emscripten'
 PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
 
 def get_readme():
@@ -41,7 +44,32 @@ class BuildFastDownward(bdist_wheel):
         try:            
             shutil.rmtree(package_dir)
         except:
-            pass            
+            pass
+
+        build_process = subprocess.Popen(["git clone " + FF_REPO], cwd=cur_dir,
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        line = build_process.stdout.readline()
+        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
+        while line:
+              sys.stdout.write(line.decode(encoding))
+              line = build_process.stdout.readline()
+        line = build_process.stderr.readline()
+        while line:
+              sys.stderr.write(line.decode(encoding))
+              line = build_process.stderr.readline()
+
+        build_process = subprocess.Popen(["make"], cwd=os.path.join(cur_dir, FF_DIR),
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        line = build_process.stdout.readline()
+        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
+        while line:
+            sys.stdout.write(line.decode(encoding))
+            line = build_process.stdout.readline()
+        line = build_process.stderr.readline()
+        while line:
+            sys.stderr.write(line.decode(encoding))
+            line = build_process.stderr.readline()
+
         # hg clone -u 7a0a766081e6 http://hg.fast-downward.org  downward_ch
         build_process = subprocess.Popen(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cwd=cur_dir,
                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -72,7 +100,7 @@ class BuildFastDownward(bdist_wheel):
 
         shutil.copyfile(os.path.join(cur_dir, "downward_ch.py"), os.path.join(package_dir, "downward_ch.py"))
         shutil.copyfile(os.path.join(cur_dir, "__init__.py"), os.path.join(package_dir, "__init__.py"))
-
+        
         # Compilation
         build_command = str(os.path.join(package_dir, 'build.py'))
         print ("Building The Fast-Downward Planning System...")
@@ -102,6 +130,8 @@ class BuildFastDownward(bdist_wheel):
         shutil.rmtree(os.path.join(package_dir, "experiments"))
         shutil.rmtree(os.path.join(package_dir, "src"))
         shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
+        shutil.copyfile(os.path.join(cur_dir, FF_DIR + '/ff'), os.path.join(package_dir, "builds/release/bin/ff"))
+        shutil.rmtree(os.path.join(cur_dir, FF_DIR))
 
         self.root_is_pure = False
         bdist_wheel.run(self)
@@ -114,7 +144,7 @@ setup(
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.5',
+    version='0.0.6',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',
