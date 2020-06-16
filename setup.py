@@ -7,6 +7,7 @@ from setuptools import setup
 from setuptools import find_packages
 from wheel.bdist_wheel import bdist_wheel
 import shutil
+import stat
 
 PACKAGE_NAME = 'downward_ch'
 DOWNWARD_REPO = 'http://hg.fast-downward.org '
@@ -19,6 +20,26 @@ PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
 def get_readme():
     return open(os.path.join(os.path.dirname(__file__), 'README.md'), 'r').read()
 
+
+def get_umask():
+    umask = os.umask(0)
+    os.umask(umask)
+    return umask
+
+
+def chmod_plus_x(path):
+    os.chmod(
+        path,
+        os.stat(path).st_mode |
+        (
+            (
+                stat.S_IXUSR |
+                stat.S_IXGRP |
+                stat.S_IXOTH
+            )
+            & ~get_umask()
+        )
+    )
 
 class BuildFastDownward(bdist_wheel):
 
@@ -131,6 +152,7 @@ class BuildFastDownward(bdist_wheel):
         shutil.rmtree(os.path.join(package_dir, "src"))
         shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
         shutil.copyfile(os.path.join(cur_dir, FF_DIR + '/ff'), os.path.join(package_dir, "builds/release/bin/ff"))
+        chmod_plus_x(os.path.join(package_dir, "builds/release/bin/ff"))
         shutil.rmtree(os.path.join(cur_dir, FF_DIR))
 
         self.root_is_pure = False
