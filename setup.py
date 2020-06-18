@@ -13,7 +13,7 @@ PACKAGE_NAME = 'downward_ch'
 DOWNWARD_REPO = 'http://hg.fast-downward.org '
 REV = '7a0a766081e6'
 #FF_REV = '6271ba2'
-FF_REPO = 'https://github.com/criticalhop/FF-emscripten.git'
+FF_REPO = 'git@github.com:criticalhop/FF-emscripten.git'
 FF_DIR = 'FF-emscripten'
 PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
 
@@ -41,6 +41,18 @@ def chmod_plus_x(path):
         )
     )
 
+def run_proc(run_lst, dir):
+    build_process = subprocess.Popen(run_lst, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    line = build_process.stdout.readline()
+    encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
+    while line:
+            sys.stdout.write(line.decode(encoding))
+            line = build_process.stdout.readline()
+    line = build_process.stderr.readline()
+    while line:
+            sys.stderr.write(line.decode(encoding))
+            line = build_process.stderr.readline()
+
 class BuildFastDownward(bdist_wheel):
 
     def get_tag(self):
@@ -67,57 +79,22 @@ class BuildFastDownward(bdist_wheel):
         except:
             pass
 
-        build_process = subprocess.Popen(["git clone " + FF_REPO], cwd=cur_dir,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        line = build_process.stdout.readline()
-        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-        while line:
-              sys.stdout.write(line.decode(encoding))
-              line = build_process.stdout.readline()
-        line = build_process.stderr.readline()
-        while line:
-              sys.stderr.write(line.decode(encoding))
-              line = build_process.stderr.readline()
+        run_proc(["git clone " + FF_REPO], cur_dir)
+        
+        run_proc(["make"], os.path.join(cur_dir, FF_DIR))
 
-        build_process = subprocess.Popen(["make"], cwd=os.path.join(cur_dir, FF_DIR),
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        line = build_process.stdout.readline()
-        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-        while line:
-            sys.stdout.write(line.decode(encoding))
-            line = build_process.stdout.readline()
-        line = build_process.stderr.readline()
-        while line:
-            sys.stderr.write(line.decode(encoding))
-            line = build_process.stderr.readline()
+        run_proc(['git clone https://gitlab.com/danfis/maplan.git'], cur_dir)
+
+        run_proc(["make boruvka opts protobuf nanomsg translate"], os.path.join(cur_dir, 'maplan/third-party'))
+        run_proc(["make -C ./bin"], os.path.join(cur_dir, 'maplan'))
 
         # hg clone -u 7a0a766081e6 http://hg.fast-downward.org  downward_ch
-        build_process = subprocess.Popen(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cwd=cur_dir,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        line = build_process.stdout.readline()
-        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-        while line:
-              sys.stdout.write(line.decode(encoding))
-              line = build_process.stdout.readline()
-        line = build_process.stderr.readline()
-        while line:
-              sys.stderr.write(line.decode(encoding))
-              line = build_process.stderr.readline()
+        run_proc(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cur_dir)
 
 #       cd downward_ch ; patch -p1 < ../downward_patch3.patch
         for PATCH in PATCHES:
             patch_dir =  str(os.path.join(cur_dir, PATCH))
-            build_process = subprocess.Popen(["patch -p1 < " + patch_dir], cwd=package_dir,
-                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            line = build_process.stdout.readline()
-            encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-            while line:
-                sys.stdout.write(line.decode(encoding))
-                line = build_process.stdout.readline()
-            line = build_process.stderr.readline()
-            while line:
-                sys.stderr.write(line.decode(encoding))
-                line = build_process.stderr.readline()
+            run_proc(["patch -p1 < " + patch_dir], package_dir)
 
         shutil.copyfile(os.path.join(cur_dir, "downward_ch.py"), os.path.join(package_dir, "downward_ch.py"))
         shutil.copyfile(os.path.join(cur_dir, "__init__.py"), os.path.join(package_dir, "__init__.py"))
@@ -125,18 +102,7 @@ class BuildFastDownward(bdist_wheel):
         # Compilation
         build_command = str(os.path.join(package_dir, 'build.py'))
         print ("Building The Fast-Downward Planning System...")
-        build_process = subprocess.Popen([build_command], cwd=package_dir,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        line = build_process.stdout.readline()
-        encoding = "utf-8" if sys.stdout.encoding is None else sys.stdout.encoding
-        while line:
-              sys.stdout.write(line.decode(encoding))
-              line = build_process.stdout.readline()
- 
-        line = build_process.stderr.readline()
-        while line:
-              sys.stderr.write(line.decode(encoding))
-              line = build_process.stderr.readline()
+        run_proc([build_command], package_dir)
     
         #Remove pyc files that break fast-downward
         fileList = glob.glob(package_dir+'/driver/portfolios/*pyc')
@@ -151,6 +117,7 @@ class BuildFastDownward(bdist_wheel):
         shutil.rmtree(os.path.join(package_dir, "experiments"))
         shutil.rmtree(os.path.join(package_dir, "src"))
         shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
+        shutil.copytree(os.path.join(cur_dir, 'maplan'), os.path.join(package_dir, 'maplan'))
         shutil.copyfile(os.path.join(cur_dir, FF_DIR + '/ff'), os.path.join(package_dir, "builds/release/bin/ff"))
         chmod_plus_x(os.path.join(package_dir, "builds/release/bin/ff"))
         shutil.rmtree(os.path.join(cur_dir, FF_DIR))
