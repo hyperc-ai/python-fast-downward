@@ -10,9 +10,8 @@ import shutil
 import stat
 
 PACKAGE_NAME = 'downward_ch'
-DOWNWARD_REPO = 'http://hg.fast-downward.org '
-REV = '7a0a766081e6'
-#FF_REV = '6271ba2'
+DOWNWARD_REPO = 'https://github.com/criticalhop/fast-downward.git '
+BRANCH = 'ch-addition'
 FF_REPO = 'git@github.com:criticalhop/FF-emscripten.git'
 FF_DIR = 'FF-emscripten'
 PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
@@ -78,23 +77,25 @@ class BuildFastDownward(bdist_wheel):
             shutil.rmtree(package_dir)
         except:
             pass
-
+        #ff-hoffman
         run_proc(["git clone " + FF_REPO], cur_dir)
         
         run_proc(["make"], os.path.join(cur_dir, FF_DIR))
-
+        #maplan
         run_proc(['git clone https://gitlab.com/danfis/maplan.git'], cur_dir)
 
         run_proc(["make boruvka opts protobuf nanomsg translate"], os.path.join(cur_dir, 'maplan/third-party'))
         run_proc(["make -C ./bin"], os.path.join(cur_dir, 'maplan'))
-
+        #ipc2018-classical/team2
+        #run_proc(['git clone https://bitbucket.org/ipc2018-classical/team2.git'], cur_dir)
+ 
         # hg clone -u 7a0a766081e6 http://hg.fast-downward.org  downward_ch
-        run_proc(["hg clone -u " + REV + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cur_dir)
+        run_proc(["git clone -b " + BRANCH + " " + DOWNWARD_REPO + " " + PACKAGE_NAME], cur_dir)
 
 #       cd downward_ch ; patch -p1 < ../downward_patch3.patch
-        for PATCH in PATCHES:
-            patch_dir =  str(os.path.join(cur_dir, PATCH))
-            run_proc(["patch -p1 < " + patch_dir], package_dir)
+#        for PATCH in PATCHES:
+#            patch_dir =  str(os.path.join(cur_dir, PATCH))
+#            run_proc(["patch -p1 < " + patch_dir], package_dir)
 
         shutil.copyfile(os.path.join(cur_dir, "downward_ch.py"), os.path.join(package_dir, "downward_ch.py"))
         shutil.copyfile(os.path.join(cur_dir, "__init__.py"), os.path.join(package_dir, "__init__.py"))
@@ -133,7 +134,7 @@ setup(
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.6',
+    version='0.0.7',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',
