@@ -10,7 +10,7 @@ import shutil
 import stat
 
 PACKAGE_NAME = 'downward_ch'
-DOWNWARD_REPO = 'https://github.com/criticalhop/fast-downward.git '
+DOWNWARD_REPO = 'https://github.com/criticalhop/downward.git '
 BRANCH = 'ch-addition'
 FF_REPO = 'git@github.com:criticalhop/FF-emscripten.git'
 FF_DIR = 'FF-emscripten'
