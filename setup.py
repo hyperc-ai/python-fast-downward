@@ -12,7 +12,7 @@ import stat
 PACKAGE_NAME = 'downward_ch'
 DOWNWARD_REPO = 'https://github.com/criticalhop/downward.git '
 BRANCH = 'ch-addition'
-FF_REPO = 'git@github.com:criticalhop/FF-emscripten.git'
+FF_REPO = 'https://github.com/criticalhop/FF-emscripten.git'
 FF_DIR = 'FF-emscripten'
 PATCHES = ['downward_patch3.patch', 'total-queue-pushes_02.patch']
 
@@ -80,12 +80,12 @@ class BuildFastDownward(bdist_wheel):
         #ff-hoffman
         run_proc(["git clone " + FF_REPO], cur_dir)
         
-        run_proc(["make"], os.path.join(cur_dir, FF_DIR))
+        run_proc(["make -j8 "], os.path.join(cur_dir, FF_DIR))
         #maplan
         run_proc(['git clone https://gitlab.com/danfis/maplan.git'], cur_dir)
 
         run_proc(["make boruvka opts protobuf nanomsg translate"], os.path.join(cur_dir, 'maplan/third-party'))
-        run_proc(["make -C ./bin"], os.path.join(cur_dir, 'maplan'))
+        run_proc(["make -j8 -C ./bin"], os.path.join(cur_dir, 'maplan'))
         #ipc2018-classical/team2
         #run_proc(['git clone https://bitbucket.org/ipc2018-classical/team2.git'], cur_dir)
  
