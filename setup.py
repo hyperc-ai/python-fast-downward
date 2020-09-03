@@ -114,11 +114,11 @@ class BuildFastDownward(bdist_wheel):
                 print("Error while deleting file : ", filePath)
 
         # cleanup fast-downward 
-        shutil.rmtree(os.path.join(package_dir, ".hg"))
+        shutil.rmtree(os.path.join(package_dir, ".git"))
         shutil.rmtree(os.path.join(package_dir, "experiments"))
         shutil.rmtree(os.path.join(package_dir, "src"))
         shutil.rmtree(os.path.join(package_dir, "builds/release/search"))
-        shutil.copytree(os.path.join(cur_dir, 'maplan'), os.path.join(package_dir, 'maplan'))
+#        shutil.copytree(os.path.join(cur_dir, 'maplan'), os.path.join(package_dir, 'maplan'))
         shutil.copyfile(os.path.join(cur_dir, FF_DIR + '/ff'), os.path.join(package_dir, "builds/release/bin/ff"))
         chmod_plus_x(os.path.join(package_dir, "builds/release/bin/ff"))
         shutil.rmtree(os.path.join(cur_dir, FF_DIR))
@@ -134,7 +134,7 @@ setup(
     include_package_data=True,
     cmdclass={'bdist_wheel': BuildFastDownward},
     entry_points={'console_scripts': ['fast-downward=' + PACKAGE_NAME + '.downward_ch:downward_ch_main']},
-    version='0.0.7',
+    version='0.0.8',
     author='Kuznetsov Andrey A.',
     author_email='andreykyz@gmail.com',
     license='GNU General Public License Version 3',
