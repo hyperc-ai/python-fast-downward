@@ -82,10 +82,10 @@ class BuildFastDownward(bdist_wheel):
         
         run_proc(["make -j8 "], os.path.join(cur_dir, FF_DIR))
         #maplan
-        run_proc(['git clone https://gitlab.com/danfis/maplan.git'], cur_dir)
+        # run_proc(['git clone https://gitlab.com/danfis/maplan.git'], cur_dir)
 
-        run_proc(["make boruvka opts protobuf nanomsg translate"], os.path.join(cur_dir, 'maplan/third-party'))
-        run_proc(["make -j8 -C ./bin"], os.path.join(cur_dir, 'maplan'))
+        # run_proc(["make boruvka opts protobuf nanomsg translate"], os.path.join(cur_dir, 'maplan/third-party'))
+        # run_proc(["make -j8 -C ./bin"], os.path.join(cur_dir, 'maplan'))
         #ipc2018-classical/team2
         #run_proc(['git clone https://bitbucket.org/ipc2018-classical/team2.git'], cur_dir)
  
